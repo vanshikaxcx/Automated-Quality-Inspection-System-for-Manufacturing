@@ -77,161 +77,11 @@ The system detects the following PCB defects:
 - CUDA-compatible GPU (recommended for training)
 - 8GB+ RAM
 
-**Setup**
-
-1. Clone the repository
-```bash
-git clone https://github.com/vanshikaxcx/Automated-Quality-Inspection-System-for-Manufacturing.git
-cd Automated-Quality-Inspection-System-for-Manufacturing
-```
-
-2. Install dependencies
-```bash
-pip install "numpy<2.0"
-pip install ultralytics
-pip install opencv-python
-pip install matplotlib
-pip install pyyaml
-```
-
-3. Verify installation
-```python
-import ultralytics
-ultralytics.checks()
-```
-
-## Usage
-
-**Training the Model**
-
-```python
-from ultralytics import YOLO
-import yaml
-
-# Configure dataset
-data_config = {
-    'path': '/path/to/dataset',
-    'train': 'images/train',
-    'val': 'images/val',
-    'names': {
-        0: 'missing_hole',
-        1: 'mouse_bite',
-        2: 'open_circuit',
-        3: 'short',
-        4: 'spur',
-        5: 'spurious_copper'
-    }
-}
-
-# Save configuration
-with open('data.yaml', 'w') as f:
-    yaml.dump(data_config, f)
-
-# Initialize and train model
-model = YOLO('yolov8n.yaml')
-results = model.train(
-    data='data.yaml',
-    epochs=100,
-    imgsz=640,
-    batch=16,
-    optimizer='AdamW',
-    lr0=0.01
-)
-```
-
-**Running Inference**
-
-```python
-from ultralytics import YOLO
-import cv2
-import matplotlib.pyplot as plt
-
-# Load trained model
-model = YOLO('best.pt')
-
-# Run prediction
-results = model.predict('test_image.jpg', conf=0.25)
-
-# Visualize results
-result = results[0]
-plt.figure(figsize=(12, 8))
-plt.imshow(result.plot())
-plt.axis('off')
-plt.show()
-```
-
-**Detailed Defect Analysis**
-
-```python
-def analyze_pcb_defect(image_path, model_path='best.pt'):
-    model = YOLO(model_path)
-    results = model.predict(image_path, conf=0.20, save=False)
-    result = results[0]
-    
-    detected_defects = []
-    
-    for box in result.boxes:
-        x1, y1, x2, y2 = box.xyxy[0].tolist()
-        center_x = int((x1 + x2) / 2)
-        center_y = int((y1 + y2) / 2)
-        
-        cls_id = int(box.cls)
-        class_name = result.names[cls_id]
-        conf = float(box.conf)
-        
-        # Determine severity
-        if class_name in ['missing_hole', 'short', 'open_circuit']:
-            severity = "CRITICAL"
-        elif conf > 0.7:
-            severity = "HIGH"
-        else:
-            severity = "MODERATE"
-        
-        detected_defects.append({
-            "type": class_name,
-            "center": (center_x, center_y),
-            "severity": severity,
-            "confidence": conf
-        })
-        
-        print(f"Defect: {class_name:<15} | Center: ({center_x:>4}, {center_y:>4}) | "
-              f"Severity: {severity:<8} | Conf: {conf:.2f}")
-    
-    return result.plot(), detected_defects
-
-# Analyze PCB image
-annotated_image, defects = analyze_pcb_defect('pcb_sample.jpg')
-```
-
-## Model Architecture
-
-**YOLOv8n Configuration**
-- Base Model: YOLOv8 Nano (lightweight variant)
-- Training Strategy: From scratch
-- Input Size: 640x640 pixels
-- Optimizer: AdamW
-- Learning Rate: 0.01
-- Batch Size: 16
-- Epochs: 100
-
-**Training Parameters**
-```yaml
-Model: YOLOv8n
-Optimizer: AdamW
-Learning Rate: 0.01
-Batch Size: 16
-Image Size: 640x640
-Epochs: 100
-Confidence Threshold: 0.20 (training), 0.25 (inference)
-```
-
 ## Results
 
 **Model Performance**
 
 The model demonstrates strong performance across all defect categories:
-
-![Inference Result 1](inf1.jpeg)
 
 ![Inference Result 2](inf2.jpeg)
 
@@ -273,6 +123,13 @@ Low false positive rates across all classes with background detection well-contr
 ![Inference Result 5](3.jpeg)
 
 ![Inference Result 6](4.jpeg)
+
+**Defect Free Samples**
+
+!<img width="308" height="313" alt="image" src="https://github.com/user-attachments/assets/9a833fcf-bb0a-485f-8240-138e8d358780" />
+!<img width="312" height="310" alt="image" src="https://github.com/user-attachments/assets/d0badf1b-91f7-48b1-aa45-a38f4951785d" />
+
+
 
 ```
 Image: pcb_sample.jpg
